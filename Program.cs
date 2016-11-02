@@ -129,8 +129,6 @@ namespace Generator
         /// <summary>
         /// Read next character into buffer.
         /// </summary>
-        /// <param name="buffer"></param>
-        /// <param name="vx"></param>
         private static void AdvanceBuffer(double[][] buffer, double[] vx)
         {
             for (var b = 0; b < size_buffer - 1; b++)
@@ -161,8 +159,6 @@ namespace Generator
         /// <summary>
         ///  Select next character from weighted random distribution.
         /// </summary>
-        /// <param name="vy"></param>
-        /// <returns></returns>
         private int WeightedChoice(double[] vy)
         {
             var val = rnd.NextDouble();
