@@ -20,10 +20,10 @@ namespace Generator
         private Layer layer2;
 
         // Hyperparameters.
-        private const int size_hidden = 150;
+        private const int size_hidden = 200;
         private const int size_buffer = 15;
-        private const int sample_length = 160;
-        private const double epochs = 100;
+        private const int sample_length = 280;
+        private const double epochs = 5;
         private double learning_rate = 1e-3;
 
         static void Main()
@@ -74,7 +74,7 @@ namespace Generator
                         layer1.Backward(layer2.Backward(grads, learning_rate), learning_rate);
 
                         // Intra-epoch update.
-                        if (pos % 100 == 0) Console.WriteLine("epoch: {0}  pos: {1}  loss: {2:0.000}", epoch, pos, loss);
+                        if (pos % 1000 == 0) Console.WriteLine("epoch: {0}  pos: {1}  loss: {2:0.000}", epoch, pos, loss);
                     }
 
                     // Write results to log.
@@ -83,7 +83,10 @@ namespace Generator
 
                     // Sample progress.
                     for (var g = 0; g < 5; g++)
+                    {
                         Generate(logger, Decode, Encode, buffer);
+                        logger.WriteLine(new String('-', 40));
+                    }
                 }
             }
 
@@ -154,6 +157,7 @@ namespace Generator
                 logger.Write(Decode[ix]);
             }
             logger.WriteLine("\r\n");
+            logger.Flush();
         }
 
         /// <summary>
