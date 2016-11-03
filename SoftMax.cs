@@ -112,9 +112,7 @@ namespace Generator
 
             for (var j = 0; j < size_output; j++)
             {
-                b_node_output[j] = 0.5 - random.NextDouble();
                 w_node_output[j] = new double[size_input];
-
                 for (var i = 0; i < size_input; i++)
                     w_node_output[j][i] = 0.5 - random.NextDouble();
             }

@@ -20,10 +20,10 @@ namespace Generator
         private Layer layer2;
 
         // Hyperparameters.
-        private const int size_hidden = 200;
-        private const int size_buffer = 15;
-        private const int sample_length = 280;
-        private const double epochs = 5;
+        private const double epochs = 25;
+        private const int size_hidden = 160;
+        private const int size_buffer = 24;
+        private const int sample_length = 80;
         private double learning_rate = 1e-3;
 
         static void Main()
@@ -41,29 +41,32 @@ namespace Generator
             var i = 0;
             foreach (var item in Decode) Encode.Add(item, i++);
 
+            var decay = learning_rate / epochs;
             layer1 = new LSTM(size_vocab, size_hidden, size_buffer);
             layer2 = new SoftMax(size_hidden, size_vocab, size_buffer);
 
             Console.WriteLine("[{0:H:mm:ss}] Starting...", DateTime.Now);
             Console.WriteLine();
 
-            var decay = learning_rate / epochs;
-
             using (var logger = new Logger("log.txt"))
             {
                 for (var epoch = 0; epoch < epochs; epoch++)
                 {
                     learning_rate = learning_rate * 1 / (1 + decay * epoch);
-                    var buffer = PrimeBuffer(Encode);
 
-                    for (var pos = size_buffer; pos < text.Length; pos++)
+                    var pos = 0;
+                    while (pos + size_buffer < text.Length)
                     {
+                        // Fill buffer.
+                        var buffer = FillBuffer(pos, Encode);
+
                         // Forward propagate.
-                        var reset = pos == size_buffer;
+                        var reset = pos == 0;
                         var vys = layer2.Forward(layer1.Forward(buffer, reset), reset);
 
-                        // Advance buffer.
+                        // Advance buffer.                       
                         var vx = new double[size_vocab];
+                        pos += size_buffer - 1;
                         vx[Encode[text[pos]]] = 1;
                         AdvanceBuffer(buffer, vx);
 
@@ -72,9 +75,6 @@ namespace Generator
 
                         // Backward propagate.
                         layer1.Backward(layer2.Backward(grads, learning_rate), learning_rate);
-
-                        // Intra-epoch update.
-                        if (pos % 1000 == 0) Console.WriteLine("epoch: {0}  pos: {1}  loss: {2:0.000}", epoch, pos, loss);
                     }
 
                     // Write results to log.
@@ -82,9 +82,9 @@ namespace Generator
                     logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  loss: {2:0.000}", DateTime.Now, epoch, loss);
 
                     // Sample progress.
-                    for (var g = 0; g < 5; g++)
+                    for (var g = 0; g < 3; g++)
                     {
-                        Generate(logger, Decode, Encode, buffer);
+                        Generate(logger, Decode, Encode);
                         logger.WriteLine(new String('-', 40));
                     }
                 }
@@ -118,13 +118,14 @@ namespace Generator
         /// <summary>
         /// Fill buffer with specified number of characters.
         /// </summary>
-        private double[][] PrimeBuffer(Dictionary<char, int> Encode)
+        private double[][] FillBuffer(int offset, Dictionary<char, int> Encode)
         {
+            // First position is unused.
             var buffer = new double[size_buffer][];
-            for (var pos = 0; pos < size_buffer; pos++)
+            for (var pos = 1; pos < size_buffer; pos++)
             {
                 buffer[pos] = new double[size_vocab];
-                buffer[pos][Encode[text[pos]]] = 1;
+                buffer[pos][Encode[text[pos + offset - 1]]] = 1;
             }
             return buffer;
         }
@@ -134,7 +135,7 @@ namespace Generator
         /// </summary>
         private static void AdvanceBuffer(double[][] buffer, double[] vx)
         {
-            for (var b = 0; b < size_buffer - 1; b++)
+            for (var b = 1; b < size_buffer - 1; b++)
                 buffer[b] = buffer[b + 1];
             buffer[size_buffer - 1] = vx;
         }
@@ -142,13 +143,13 @@ namespace Generator
         /// <summary>
         /// Generate sequence of text using trained network.
         /// </summary>
-        private void Generate(Logger logger, char[] Decode, Dictionary<char, int> Encode, double[][] buffer)
+        private void Generate(Logger logger, char[] Decode, Dictionary<char, int> Encode)
         {
-            buffer = PrimeBuffer(Encode);
-            logger.Write(text.Substring(0, size_buffer));
-            for (var pos = size_buffer; pos < sample_length; pos++)
+            var buffer = FillBuffer(0, Encode);
+            logger.Write(text.Substring(0, size_buffer - 1));
+            for (var pos = 0; pos < sample_length; pos++)
             {
-                var reset = pos == size_buffer;
+                var reset = pos == 0;
                 var vys = layer2.Forward(layer1.Forward(buffer, reset), reset);
                 var ix = WeightedChoice(vys[size_buffer - 1]);
                 var vx = new double[size_vocab];

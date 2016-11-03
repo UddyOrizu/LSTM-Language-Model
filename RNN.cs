@@ -49,7 +49,7 @@ namespace Generator
         public override double[][] Forward(double[][] buffer, bool reset)
         {
             if (reset) node_output[0] = new double[size_output];
-            else node_output[0] = node_output[1].ToArray();
+            else node_output[0] = node_output[size_buffer - 1].ToArray();
 
             for (var t = 1; t < size_buffer; t++)
             {
@@ -135,9 +135,7 @@ namespace Generator
 
             for (var j = 0; j < size_output; j++)
             {
-                b_node_output[j] = 0.5 - random.NextDouble();
                 w_node_output[j] = new double[size_total];
-
                 for (var i = 0; i < size_total; i++)
                     w_node_output[j][i] = 0.5 - random.NextDouble();
             }

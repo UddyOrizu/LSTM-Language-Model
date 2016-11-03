@@ -15,7 +15,7 @@ namespace Generator
         private int size_buffer;
         private int size_output;
         private int size_input;
-        private int size_vcx;
+        private int size_total;
 
         // State.
         private double[][] gate_input;
@@ -61,7 +61,7 @@ namespace Generator
             this.size_output = size_output;
             this.size_input = size_input;
             this.size_buffer = size_buffer;
-            size_vcx = size_input + size_output;
+            size_total = size_input + size_output;
 
             ResetState();
             ResetParameters();
@@ -78,8 +78,8 @@ namespace Generator
             }
             else
             {
-                node_cell[0] = node_cell[1].ToArray();
-                node_output[0] = node_output[1].ToArray();
+                node_cell[0] = node_cell[size_buffer - 1].ToArray();
+                node_output[0] = node_output[size_buffer - 1].ToArray();
             }
 
             for (var t = 1; t < size_buffer; t++)
@@ -91,11 +91,7 @@ namespace Generator
                 var row_gate_input = gate_input[t];
                 var row_gate_forget = gate_forget[t];
                 var row_gate_output = gate_output[t];
-
                 var row_node_input = node_input[t];
-                var row_node_cell = node_cell[t];
-                var row_node_cell_p = node_cell[t - 1];
-                var row_node_output = node_output[t];
 
                 for (var j = 0; j < size_output; j++)
                 {
@@ -109,7 +105,7 @@ namespace Generator
                     var row_w_gate_ouput = w_gate_output[j];
                     var row_w_node_input = w_node_input[j];
 
-                    for (var i = 0; i < size_vcx; i++)
+                    for (var i = 0; i < size_total; i++)
                     {
                         row_gate_input[j] += row_w_gate_input[i] * row_vcx_state[i];
                         row_gate_forget[j] += row_w_gate_forget[i] * row_vcx_state[i];
@@ -122,6 +118,10 @@ namespace Generator
                     row_gate_output[j] = Sigmoid(row_gate_output[j]);
                     row_node_input[j] = Tanh(row_node_input[j]);
                 }
+
+                var row_node_cell = node_cell[t];
+                var row_node_cell_p = node_cell[t - 1];
+                var row_node_output = node_output[t];
 
                 for (var i = 0; i < size_output; i++)
                 {
@@ -189,7 +189,7 @@ namespace Generator
 
                     var row_vcx_state = vcx[t];
 
-                    for (var i = 0; i < size_output + size_input; i++)
+                    for (var i = 0; i < size_total; i++)
                     {
                         row_dw_node_input[i] += d_node_input * row_vcx_state[i];
                         row_dw_gate_input[i] += d_gate_input * row_vcx_state[i];
@@ -233,7 +233,7 @@ namespace Generator
                 node_input[i] = new double[size_output];
                 node_output[i] = new double[size_output];
                 node_cell[i] = new double[size_output];
-                vcx[i] = new double[size_vcx];
+                vcx[i] = new double[size_total];
             }
         }
 
@@ -251,17 +251,12 @@ namespace Generator
 
             for (var j = 0; j < size_output; j++)
             {
-                b_gate_output[j] = 0.5 - random.NextDouble();
-                b_gate_forget[j] = 0.5 - random.NextDouble();
-                b_gate_input[j] = 0.5 - random.NextDouble();
-                b_node_input[j] = 0.5 - random.NextDouble();
+                w_gate_output[j] = new double[size_total];
+                w_gate_forget[j] = new double[size_total];
+                w_gate_input[j] = new double[size_total];
+                w_node_input[j] = new double[size_total];
 
-                w_gate_output[j] = new double[size_vcx];
-                w_gate_forget[j] = new double[size_vcx];
-                w_gate_input[j] = new double[size_vcx];
-                w_node_input[j] = new double[size_vcx];
-
-                for (var i = 0; i < size_vcx; i++)
+                for (var i = 0; i < size_total; i++)
                 {
                     w_gate_output[j][i] = 0.5 - random.NextDouble();
                     w_gate_forget[j][i] = 0.5 - random.NextDouble();
@@ -285,10 +280,10 @@ namespace Generator
 
             for (var i = 0; i < size_output; i++)
             {
-                dw_gate_output[i] = new double[size_vcx];
-                dw_gate_forget[i] = new double[size_vcx];
-                dw_gate_input[i] = new double[size_vcx];
-                dw_node_input[i] = new double[size_vcx];
+                dw_gate_output[i] = new double[size_total];
+                dw_gate_forget[i] = new double[size_total];
+                dw_gate_input[i] = new double[size_total];
+                dw_node_input[i] = new double[size_total];
             }
         }
 
@@ -306,10 +301,10 @@ namespace Generator
 
             for (var i = 0; i < size_output; i++)
             {
-                cw_gate_output[i] = new double[size_vcx];
-                cw_gate_forget[i] = new double[size_vcx];
-                cw_gate_input[i] = new double[size_vcx];
-                cw_node_input[i] = new double[size_vcx];
+                cw_gate_output[i] = new double[size_total];
+                cw_gate_forget[i] = new double[size_total];
+                cw_gate_input[i] = new double[size_total];
+                cw_node_input[i] = new double[size_total];
             }
         }
 
@@ -327,7 +322,7 @@ namespace Generator
                 b_gate_input[j] -= Clip(db_gate_input[j]) * alpha / Math.Sqrt(cb_gate_input[j] + 1e-6);
                 b_node_input[j] -= Clip(db_node_input[j]) * alpha / Math.Sqrt(cb_node_input[j] + 1e-6);
 
-                for (var i = 0; i < size_vcx; i++)
+                for (var i = 0; i < size_total; i++)
                 {
                     cw_gate_output[j][i] = rmsDecay * cw_gate_output[j][i] + (1 - rmsDecay) * Math.Pow(dw_gate_output[j][i], 2);
                     cw_gate_forget[j][i] = rmsDecay * cw_gate_forget[j][i] + (1 - rmsDecay) * Math.Pow(dw_gate_forget[j][i], 2);
