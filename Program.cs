@@ -14,6 +14,7 @@ namespace Generator
         private int size_vocab;
         private string text;
         private double loss;
+        private double loss_p;
 
         // Network layers.
         private Layer layer1;
@@ -26,7 +27,7 @@ namespace Generator
         private const int size_buffer = 24;
         private const int sample_length = 500;
         private const int sample_count = 3;
-        private double learning_rate = 1e-3;
+        private double learning_rate = 5e-3;
 
         static void Main()
         {
@@ -39,25 +40,23 @@ namespace Generator
             var Decode = text.Distinct().OrderBy(x => x).ToArray();
             var Encode = new Dictionary<char, int>();
             size_vocab = Decode.Length;
+            loss_p = Math.Log(size_vocab);
 
             var i = 0;
             foreach (var item in Decode) Encode.Add(item, i++);
 
-            var decay = learning_rate / epochs;
             layer1 = new LSTM(size_vocab, size_hidden, size_buffer);
             layer2 = new LSTM(size_hidden, size_hidden, size_buffer);
             layer3 = new SoftMax(size_hidden, size_vocab, size_buffer);
 
-            var param_count = size_vocab * size_hidden * 2 + size_hidden * size_hidden * 3 + size_hidden * 2 + size_vocab;
-            Console.WriteLine("[{0:H:mm:ss}] Learning {1:#,###0} parameters...", DateTime.Now, param_count);
-            Console.WriteLine();
-
             using (var logger = new Logger("log.txt"))
             {
+                var param_count = size_vocab * size_hidden * 2 + size_hidden * size_hidden * 3 + size_hidden * 2 + size_vocab;
+                logger.WriteLine("[{0:H:mm:ss}] Learning {1:#,###0} parameters...", DateTime.Now, param_count);
+                logger.WriteLine();
+
                 for (var epoch = 0; epoch < epochs; epoch++)
                 {
-                    learning_rate = learning_rate * 1 / (1 + decay * epoch);
-
                     var pos = 0;
                     while (pos + size_buffer < text.Length)
                     {
@@ -81,20 +80,25 @@ namespace Generator
                         layer1.Backward(layer2.Backward(layer3.Backward(grads, learning_rate), learning_rate), learning_rate);
                     }
 
-                    // Write results to log.
-                    logger.WriteLine();
-                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  loss: {2:0.000}", DateTime.Now, epoch, loss);
-
                     // Sample progress.
+                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}", DateTime.Now, epoch, learning_rate, loss);
                     for (var g = 0; g < sample_count; g++)
                     {
-                        Generate(logger, Decode, Encode);
                         logger.WriteLine(new String('-', 40));
+                        Generate(logger, Decode, Encode);
                     }
-                }
-            }
+                    logger.WriteLine(new String('-', 40));
+                    logger.WriteLine();
+                    logger.Flush();
 
-            Console.WriteLine("[{0:H:mm:ss}] Finished!", DateTime.Now);
+                    // Adjust learning rate.
+                    if (loss_p - loss > 0) learning_rate += learning_rate * 0.01;
+                    else learning_rate -= learning_rate * 0.02;
+                    loss_p = loss_p * 0.8 + loss * 0.2;
+                }
+
+                logger.WriteLine("[{0:H:mm:ss}] Finished!", DateTime.Now);
+            }
             Console.ReadLine();
         }
 
@@ -114,7 +118,7 @@ namespace Generator
                     grads[t][i] -= targets[t][i];
                 }
             }
-            ls = ls / size_buffer;
+            ls = ls / (size_buffer - 1);
             loss = loss * 0.99 + ls * 0.01;
             return grads;
         }
@@ -150,7 +154,6 @@ namespace Generator
         private void Generate(Logger logger, char[] Decode, Dictionary<char, int> Encode)
         {
             var buffer = FillBuffer(0, Encode);
-            logger.Write(text.Substring(0, size_buffer - 1));
             for (var pos = 0; pos < sample_length; pos++)
             {
                 var reset = pos == 0;
@@ -161,8 +164,7 @@ namespace Generator
                 AdvanceBuffer(buffer, vx);
                 logger.Write(Decode[ix]);
             }
-            logger.WriteLine("\r\n");
-            logger.Flush();
+            logger.WriteLine();
         }
 
         /// <summary>
