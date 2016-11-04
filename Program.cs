@@ -18,12 +18,14 @@ namespace Generator
         // Network layers.
         private Layer layer1;
         private Layer layer2;
+        private Layer layer3;
 
         // Hyperparameters.
-        private const double epochs = 25;
-        private const int size_hidden = 160;
+        private const double epochs = 50;
+        private const int size_hidden = 100;
         private const int size_buffer = 24;
-        private const int sample_length = 80;
+        private const int sample_length = 500;
+        private const int sample_count = 3;
         private double learning_rate = 1e-3;
 
         static void Main()
@@ -43,9 +45,11 @@ namespace Generator
 
             var decay = learning_rate / epochs;
             layer1 = new LSTM(size_vocab, size_hidden, size_buffer);
-            layer2 = new SoftMax(size_hidden, size_vocab, size_buffer);
+            layer2 = new LSTM(size_hidden, size_hidden, size_buffer);
+            layer3 = new SoftMax(size_hidden, size_vocab, size_buffer);
 
-            Console.WriteLine("[{0:H:mm:ss}] Starting...", DateTime.Now);
+            var param_count = size_vocab * size_hidden * 2 + size_hidden * size_hidden * 3 + size_hidden * 2 + size_vocab;
+            Console.WriteLine("[{0:H:mm:ss}] Learning {1:#,###0} parameters...", DateTime.Now, param_count);
             Console.WriteLine();
 
             using (var logger = new Logger("log.txt"))
@@ -60,9 +64,9 @@ namespace Generator
                         // Fill buffer.
                         var buffer = FillBuffer(pos, Encode);
 
-                        // Forward propagate.
+                        // Forward propagate activation.
                         var reset = pos == 0;
-                        var vys = layer2.Forward(layer1.Forward(buffer, reset), reset);
+                        var probs = layer3.Forward(layer2.Forward(layer1.Forward(buffer, reset), reset), reset);
 
                         // Advance buffer.                       
                         var vx = new double[size_vocab];
@@ -71,10 +75,10 @@ namespace Generator
                         AdvanceBuffer(buffer, vx);
 
                         // Calculate loss.
-                        var grads = Loss(vys, buffer);
+                        var grads = Loss(probs, buffer);
 
-                        // Backward propagate.
-                        layer1.Backward(layer2.Backward(grads, learning_rate), learning_rate);
+                        // Backward propagate gradients.
+                        layer1.Backward(layer2.Backward(layer3.Backward(grads, learning_rate), learning_rate), learning_rate);
                     }
 
                     // Write results to log.
@@ -82,7 +86,7 @@ namespace Generator
                     logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  loss: {2:0.000}", DateTime.Now, epoch, loss);
 
                     // Sample progress.
-                    for (var g = 0; g < 3; g++)
+                    for (var g = 0; g < sample_count; g++)
                     {
                         Generate(logger, Decode, Encode);
                         logger.WriteLine(new String('-', 40));
@@ -97,16 +101,16 @@ namespace Generator
         /// <summary>
         /// Calculate cross entropy loss.
         /// </summary>
-        private double[][] Loss(double[][] vys, double[][] targets)
+        private double[][] Loss(double[][] probs, double[][] targets)
         {
             var ls = 0.0;
             var grads = new double[size_buffer][];
             for (var t = 1; t < size_buffer; t++)
             {
-                grads[t] = vys[t].ToArray();
+                grads[t] = probs[t].ToArray();
                 for (var i = 0; i < size_vocab; i++)
                 {
-                    ls += -Math.Log(vys[t][i]) * targets[t][i];
+                    ls += -Math.Log(probs[t][i]) * targets[t][i];
                     grads[t][i] -= targets[t][i];
                 }
             }
@@ -150,7 +154,7 @@ namespace Generator
             for (var pos = 0; pos < sample_length; pos++)
             {
                 var reset = pos == 0;
-                var vys = layer2.Forward(layer1.Forward(buffer, reset), reset);
+                var vys = layer3.Forward(layer2.Forward(layer1.Forward(buffer, reset), reset), reset);
                 var ix = WeightedChoice(vys[size_buffer - 1]);
                 var vx = new double[size_vocab];
                 vx[ix] = 1;
