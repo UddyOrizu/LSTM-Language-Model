@@ -48,9 +48,10 @@ namespace Model
             layer2 = new LSTM(size_hidden, size_hidden, size_buffer);
             layer3 = new SoftMax(size_hidden, size_vocab, size_buffer);
 
+            var param_count = layer1.Count() + layer2.Count() + layer3.Count();
+
             using (var logger = new Logger("log.txt"))
             {
-                var param_count = size_vocab * size_hidden * 2 + size_hidden * size_hidden * 3 + size_hidden * 2 + size_vocab;
                 logger.WriteLine("[{0:H:mm:ss}] Learning {1:#,###0} parameters...", DateTime.Now, param_count);
                 logger.WriteLine();
 

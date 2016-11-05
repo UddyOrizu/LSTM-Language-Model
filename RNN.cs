@@ -33,6 +33,11 @@ namespace Model
         private double[] cb_node_output;
         private double[][] cw_node_output;
 
+        public override int Count()
+        {
+            return size_output + size_total * size_output;
+        }
+
         public RNN(int size_input, int size_output, int size_buffer)
         {
             this.size_input = size_input;

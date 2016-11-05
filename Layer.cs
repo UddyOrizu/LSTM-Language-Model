@@ -14,6 +14,8 @@ namespace Model
 
         protected const double rmsDecay = 0.95;
 
+        public abstract int Count();
+
         public abstract double[][] Forward(double[][] buffer, bool reset);
 
         public abstract double[][] Backward(double[][] grads, double alpha);

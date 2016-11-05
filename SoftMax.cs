@@ -43,6 +43,11 @@ namespace Model
             ResetCaches();
         }
 
+        public override int Count()
+        {
+            return size_output + size_input * size_output;
+        }
+
         public override double[][] Forward(double[][] buffer, bool reset)
         {
             for (var t = 1; t < size_buffer; t++)

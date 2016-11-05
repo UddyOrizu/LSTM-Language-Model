@@ -56,6 +56,11 @@ namespace Model
         private double[][] cw_gate_output;
         private double[][] cw_node_input;
 
+        public override int Count()
+        {
+            return size_output * 4 + size_total * size_output * 4;
+        }
+
         public LSTM(int size_input, int size_output, int size_buffer)
         {
             this.size_output = size_output;
