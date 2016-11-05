@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace Generator
+namespace Model
 {
     /// <summary>
     /// Recurrent neural network layer implementing backpropagation through time.
@@ -137,7 +137,7 @@ namespace Generator
             {
                 w_node_output[j] = new double[size_total];
                 for (var i = 0; i < size_total; i++)
-                    w_node_output[j][i] = 0.5 - random.NextDouble();
+                    w_node_output[j][i] = RandomWeight();
             }
         }
 

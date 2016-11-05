@@ -4,7 +4,7 @@
 using System;
 using System.Linq;
 
-namespace Generator
+namespace Model
 {
     /// <summary>
     /// Long short term memory neural network layer.
@@ -258,10 +258,10 @@ namespace Generator
 
                 for (var i = 0; i < size_total; i++)
                 {
-                    w_gate_output[j][i] = 0.5 - random.NextDouble();
-                    w_gate_forget[j][i] = 0.5 - random.NextDouble();
-                    w_gate_input[j][i] = 0.5 - random.NextDouble();
-                    w_node_input[j][i] = 0.5 - random.NextDouble();
+                    w_gate_output[j][i] = RandomWeight();
+                    w_gate_forget[j][i] = RandomWeight();
+                    w_gate_input[j][i] = RandomWeight();
+                    w_node_input[j][i] = RandomWeight();
                 }
             }
         }

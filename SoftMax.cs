@@ -3,7 +3,7 @@
 
 using System;
 
-namespace Generator
+namespace Model
 {
     /// <summary>
     /// Pass through neural network layer implementing SoftMax output.
@@ -48,8 +48,8 @@ namespace Generator
             for (var t = 1; t < size_buffer; t++)
             {
                 vcx[t] = buffer[t];
-
                 var row_vcx_state = vcx[t];
+
                 var vy = new double[size_output];
                 for (var j = 0; j < size_output; j++)
                 {
@@ -114,7 +114,7 @@ namespace Generator
             {
                 w_node_output[j] = new double[size_input];
                 for (var i = 0; i < size_input; i++)
-                    w_node_output[j][i] = 0.5 - random.NextDouble();
+                    w_node_output[j][i] = RandomWeight();
             }
         }
 

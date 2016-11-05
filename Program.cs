@@ -6,7 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-namespace Generator
+namespace Model
 {
     public class Program
     {
@@ -22,12 +22,11 @@ namespace Generator
         private Layer layer3;
 
         // Hyperparameters.
-        private const double epochs = 50;
         private const int size_hidden = 100;
         private const int size_buffer = 24;
         private const int sample_length = 500;
         private const int sample_count = 3;
-        private double learning_rate = 5e-3;
+        private double learning_rate = 1e-3;
 
         static void Main()
         {
@@ -55,7 +54,8 @@ namespace Generator
                 logger.WriteLine("[{0:H:mm:ss}] Learning {1:#,###0} parameters...", DateTime.Now, param_count);
                 logger.WriteLine();
 
-                for (var epoch = 0; epoch < epochs; epoch++)
+                var epoch = 0;
+                while (true)
                 {
                     var pos = 0;
                     while (pos + size_buffer < text.Length)
@@ -84,10 +84,10 @@ namespace Generator
                     logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}", DateTime.Now, epoch, learning_rate, loss);
                     for (var g = 0; g < sample_count; g++)
                     {
-                        logger.WriteLine(new String('-', 40));
+                        logger.WriteLine(new String('-', 55));
                         Generate(logger, Decode, Encode);
                     }
-                    logger.WriteLine(new String('-', 40));
+                    logger.WriteLine(new String('-', 55));
                     logger.WriteLine();
                     logger.Flush();
 
@@ -95,11 +95,10 @@ namespace Generator
                     if (loss_p - loss > 0) learning_rate += learning_rate * 0.01;
                     else learning_rate -= learning_rate * 0.02;
                     loss_p = loss_p * 0.8 + loss * 0.2;
-                }
 
-                logger.WriteLine("[{0:H:mm:ss}] Finished!", DateTime.Now);
+                    epoch++;
+                }
             }
-            Console.ReadLine();
         }
 
         /// <summary>
@@ -157,8 +156,8 @@ namespace Generator
             for (var pos = 0; pos < sample_length; pos++)
             {
                 var reset = pos == 0;
-                var vys = layer3.Forward(layer2.Forward(layer1.Forward(buffer, reset), reset), reset);
-                var ix = WeightedChoice(vys[size_buffer - 1]);
+                var probs = layer3.Forward(layer2.Forward(layer1.Forward(buffer, reset), reset), reset);
+                var ix = WeightedChoice(probs[size_buffer - 1]);
                 var vx = new double[size_vocab];
                 vx[ix] = 1;
                 AdvanceBuffer(buffer, vx);

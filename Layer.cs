@@ -3,16 +3,16 @@
 
 using System;
 
-namespace Generator
+namespace Model
 {
     /// <summary>
     /// Base class for all neural network layers.
     /// </summary>
     public abstract class Layer
     {
-        protected const double rmsDecay = 0.95;
+        private readonly Random random = new Random();
 
-        protected readonly Random random = new Random();
+        protected const double rmsDecay = 0.95;
 
         public abstract double[][] Forward(double[][] buffer, bool reset);
 
@@ -36,6 +36,14 @@ namespace Generator
             if (x < -1.0) return -1.0;
             if (x > 1.0) return 1.0;
             return x;
+        }
+
+        /// <summary>
+        /// Random weight initialisation.
+        /// </summary>
+        protected double RandomWeight()
+        {
+            return (0.5 - random.NextDouble()) * 0.2;
         }
 
         /// <summary>
