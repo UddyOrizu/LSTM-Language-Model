@@ -15,6 +15,7 @@ namespace Model
         private string text;
         private double loss;
         private double loss_p;
+        private double perplexity;
 
         // Network layers.
         private Layer layer1;
@@ -40,6 +41,7 @@ namespace Model
             var Encode = new Dictionary<char, int>();
             size_vocab = Decode.Length;
             loss_p = Math.Log(size_vocab);
+            perplexity = size_vocab;
 
             var i = 0;
             foreach (var item in Decode) Encode.Add(item, i++);
@@ -82,7 +84,7 @@ namespace Model
                     }
 
                     // Sample progress.
-                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}", DateTime.Now, epoch, learning_rate, loss);
+                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}  perplexity: {4:0.000}", DateTime.Now, epoch, learning_rate, loss, perplexity);
                     for (var g = 0; g < sample_count; g++)
                     {
                         logger.WriteLine(new String('-', 55));
@@ -108,6 +110,7 @@ namespace Model
         private double[][] Loss(double[][] probs, double[][] targets)
         {
             var ls = 0.0;
+            var pp = 1.0;
             var grads = new double[size_buffer][];
             for (var t = 1; t < size_buffer; t++)
             {
@@ -115,11 +118,17 @@ namespace Model
                 for (var i = 0; i < size_vocab; i++)
                 {
                     ls += -Math.Log(probs[t][i]) * targets[t][i];
+                    if (targets[t][i] == 1) pp = pp * (1 / probs[t][i]);
                     grads[t][i] -= targets[t][i];
                 }
             }
+
             ls = ls / (size_buffer - 1);
             loss = loss * 0.99 + ls * 0.01;
+
+            pp = Math.Pow(pp, 1.0 / (size_buffer - 1));
+            perplexity = perplexity * 0.99 + pp * 0.01;
+
             return grads;
         }
 
