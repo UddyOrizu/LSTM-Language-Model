@@ -39,12 +39,13 @@ namespace Model
             return size_output + size_total * size_output;
         }
 
-        public RNN(int size_input, int size_output, int size_buffer)
+        public RNN(int size_input, int size_output, int size_buffer, double learning_rate)
         {
             this.size_input = size_input;
             this.size_output = size_output;
             this.size_buffer = size_buffer;
             size_total = size_input + size_output;
+            LearningRate = learning_rate;
 
             ResetState();
             ResetParameters();
@@ -80,7 +81,7 @@ namespace Model
             return node_output;
         }
 
-        public override double[][] Backward(double[][] grads, double alpha)
+        public override double[][] Backward(double[][] grads)
         {
             var grads_out = new double[size_buffer][];
             var dy_prev = new double[size_output];
@@ -116,7 +117,7 @@ namespace Model
                 });
             }
 
-            Update(alpha);
+            Update();
             ResetGradients();
 
             return grads_out;
@@ -165,17 +166,17 @@ namespace Model
                 cw_node_output[j] = new double[size_input];
         }
 
-        protected override void Update(double alpha)
+        protected override void Update()
         {
             for (var j = 0; j < size_output; j++)
             {
                 cb_node_output[j] = rmsDecay * cb_node_output[j] + (1 - rmsDecay) * Math.Pow(db_node_output[j], 2);
-                b_node_output[j] -= Clip(db_node_output[j]) * alpha / Math.Sqrt(cb_node_output[j] + 1e-6);
+                b_node_output[j] -= Clip(db_node_output[j]) * LearningRate / Math.Sqrt(cb_node_output[j] + 1e-6);
 
                 for (var i = 0; i < size_input; i++)
                 {
                     cw_node_output[j][i] = rmsDecay * cw_node_output[j][i] + (1 - rmsDecay) * Math.Pow(cw_node_output[j][i], 2);
-                    w_node_output[j][i] -= Clip(dw_node_output[j][i]) * alpha / Math.Sqrt(cw_node_output[j][i] + 1e-6);
+                    w_node_output[j][i] -= Clip(dw_node_output[j][i]) * LearningRate / Math.Sqrt(cw_node_output[j][i] + 1e-6);
                 }
             }
         }

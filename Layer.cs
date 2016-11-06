@@ -17,11 +17,13 @@ namespace Model
 
         protected const double rmsDecay = 0.95;
 
+        public double LearningRate;
+
         public abstract int Count();
 
         public abstract double[][] Forward(double[][] buffer, bool reset);
 
-        public abstract double[][] Backward(double[][] grads, double alpha);
+        public abstract double[][] Backward(double[][] grads);
 
         protected abstract void ResetState();
 
@@ -31,7 +33,7 @@ namespace Model
 
         protected abstract void ResetCaches();
 
-        protected abstract void Update(double alpha);
+        protected abstract void Update();
 
         /// <summary>
         /// Prevent gradient explosions.

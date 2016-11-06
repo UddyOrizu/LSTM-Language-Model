@@ -22,7 +22,7 @@ namespace Model
         private Layer layer3;
 
         // Hyperparameters.
-        private const int size_hidden = 100;
+        private const int size_hidden = 128;
         private const int size_buffer = 24;
         private const int sample_length = 500;
         private const int sample_count = 3;
@@ -44,9 +44,9 @@ namespace Model
             var i = 0;
             foreach (var item in Decode) Encode.Add(item, i++);
 
-            layer1 = new LSTM(size_vocab, size_hidden, size_buffer);
-            layer2 = new LSTM(size_hidden, size_hidden, size_buffer);
-            layer3 = new SoftMax(size_hidden, size_vocab, size_buffer);
+            layer1 = new LSTM(size_vocab, size_hidden, size_buffer, learning_rate);
+            layer2 = new LSTM(size_hidden, size_hidden, size_buffer, learning_rate);
+            layer3 = new SoftMax(size_hidden, size_vocab, size_buffer, learning_rate);
 
             var param_count = layer1.Count() + layer2.Count() + layer3.Count();
 
@@ -78,7 +78,7 @@ namespace Model
                         var grads = Loss(probs, buffer);
 
                         // Backward propagate gradients.
-                        layer1.Backward(layer2.Backward(layer3.Backward(grads, learning_rate), learning_rate), learning_rate);
+                        layer1.Backward(layer2.Backward(layer3.Backward(grads)));
                     }
 
                     // Sample progress.
@@ -95,6 +95,9 @@ namespace Model
                     // Adjust learning rate.
                     if (loss_p - loss > 0) learning_rate += learning_rate * 0.01;
                     else learning_rate -= learning_rate * 0.02;
+                    layer1.LearningRate = learning_rate;
+                    layer2.LearningRate = learning_rate;
+                    layer3.LearningRate = learning_rate;
                     loss_p = loss_p * 0.8 + loss * 0.2;
 
                     epoch++;

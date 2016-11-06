@@ -62,12 +62,13 @@ namespace Model
             return size_output * 4 + size_total * size_output * 4;
         }
 
-        public LSTM(int size_input, int size_output, int size_buffer)
+        public LSTM(int size_input, int size_output, int size_buffer, double learning_rate)
         {
             this.size_output = size_output;
             this.size_input = size_input;
             this.size_buffer = size_buffer;
             size_total = size_input + size_output;
+            LearningRate = learning_rate;
 
             ResetState();
             ResetParameters();
@@ -139,7 +140,7 @@ namespace Model
             return node_output;
         }
 
-        public override double[][] Backward(double[][] grads, double alpha)
+        public override double[][] Backward(double[][] grads)
         {
             var grads_out = new double[size_buffer][];
             var d_node_cell = new double[size_output];
@@ -215,7 +216,7 @@ namespace Model
                 });
             }
 
-            Update(alpha);
+            Update();
             ResetGradients();
 
             return grads_out;
@@ -314,7 +315,7 @@ namespace Model
             }
         }
 
-        protected override void Update(double alpha)
+        protected override void Update()
         {
             Parallel.For(0, size_output, options, j =>
             {
@@ -323,10 +324,10 @@ namespace Model
                 cb_gate_input[j] = rmsDecay * cb_gate_input[j] + (1 - rmsDecay) * Math.Pow(db_gate_input[j], 2);
                 cb_node_input[j] = rmsDecay * cb_node_input[j] + (1 - rmsDecay) * Math.Pow(db_node_input[j], 2);
 
-                b_gate_output[j] -= Clip(db_gate_output[j]) * alpha / Math.Sqrt(cb_gate_output[j] + 1e-6);
-                b_gate_forget[j] -= Clip(db_gate_forget[j]) * alpha / Math.Sqrt(cb_gate_forget[j] + 1e-6);
-                b_gate_input[j] -= Clip(db_gate_input[j]) * alpha / Math.Sqrt(cb_gate_input[j] + 1e-6);
-                b_node_input[j] -= Clip(db_node_input[j]) * alpha / Math.Sqrt(cb_node_input[j] + 1e-6);
+                b_gate_output[j] -= Clip(db_gate_output[j]) * LearningRate / Math.Sqrt(cb_gate_output[j] + 1e-6);
+                b_gate_forget[j] -= Clip(db_gate_forget[j]) * LearningRate / Math.Sqrt(cb_gate_forget[j] + 1e-6);
+                b_gate_input[j] -= Clip(db_gate_input[j]) * LearningRate / Math.Sqrt(cb_gate_input[j] + 1e-6);
+                b_node_input[j] -= Clip(db_node_input[j]) * LearningRate / Math.Sqrt(cb_node_input[j] + 1e-6);
 
                 for (var i = 0; i < size_total; i++)
                 {
@@ -335,10 +336,10 @@ namespace Model
                     cw_gate_input[j][i] = rmsDecay * cw_gate_input[j][i] + (1 - rmsDecay) * Math.Pow(dw_gate_input[j][i], 2);
                     cw_node_input[j][i] = rmsDecay * cw_node_input[j][i] + (1 - rmsDecay) * Math.Pow(dw_node_input[j][i], 2);
 
-                    w_gate_output[j][i] -= Clip(dw_gate_output[j][i]) * alpha / Math.Sqrt(cw_gate_output[j][i] + 1e-6);
-                    w_gate_forget[j][i] -= Clip(dw_gate_forget[j][i]) * alpha / Math.Sqrt(cw_gate_forget[j][i] + 1e-6);
-                    w_gate_input[j][i] -= Clip(dw_gate_input[j][i]) * alpha / Math.Sqrt(cw_gate_input[j][i] + 1e-6);
-                    w_node_input[j][i] -= Clip(dw_node_input[j][i]) * alpha / Math.Sqrt(cw_node_input[j][i] + 1e-6);
+                    w_gate_output[j][i] -= Clip(dw_gate_output[j][i]) * LearningRate / Math.Sqrt(cw_gate_output[j][i] + 1e-6);
+                    w_gate_forget[j][i] -= Clip(dw_gate_forget[j][i]) * LearningRate / Math.Sqrt(cw_gate_forget[j][i] + 1e-6);
+                    w_gate_input[j][i] -= Clip(dw_gate_input[j][i]) * LearningRate / Math.Sqrt(cw_gate_input[j][i] + 1e-6);
+                    w_node_input[j][i] -= Clip(dw_node_input[j][i]) * LearningRate / Math.Sqrt(cw_node_input[j][i] + 1e-6);
                 }
             });
         }
