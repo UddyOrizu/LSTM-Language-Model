@@ -87,10 +87,10 @@ namespace Model
                     logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}  perplexity: {4:0.000}", DateTime.Now, epoch, learning_rate, loss, perplexity);
                     for (var g = 0; g < sample_count; g++)
                     {
-                        logger.WriteLine(new String('-', 55));
+                        logger.WriteLine(new String('-', 80));
                         Generate(logger, Decode, Encode);
                     }
-                    logger.WriteLine(new String('-', 55));
+                    logger.WriteLine(new String('-', 80));
                     logger.WriteLine();
                     logger.Flush();
 
