@@ -2,6 +2,7 @@
 // www.robosoup.com
 
 using System;
+using System.Threading.Tasks;
 
 namespace Model
 {
@@ -11,6 +12,8 @@ namespace Model
     public abstract class Layer
     {
         private readonly Random random = new Random();
+
+        protected readonly ParallelOptions options = new ParallelOptions();
 
         protected const double rmsDecay = 0.95;
 

@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Model
 {
@@ -98,7 +99,7 @@ namespace Model
                 var row_gate_output = gate_output[t];
                 var row_node_input = node_input[t];
 
-                for (var j = 0; j < size_output; j++)
+                Parallel.For(0, size_output, options, j =>
                 {
                     row_gate_input[j] = b_gate_input[j];
                     row_gate_forget[j] = b_gate_forget[j];
@@ -122,7 +123,7 @@ namespace Model
                     row_gate_forget[j] = Sigmoid(row_gate_forget[j]);
                     row_gate_output[j] = Sigmoid(row_gate_output[j]);
                     row_node_input[j] = Tanh(row_node_input[j]);
-                }
+                });
 
                 var row_node_cell = node_cell[t];
                 var row_node_cell_p = node_cell[t - 1];
@@ -158,7 +159,7 @@ namespace Model
                 var row_node_cell_p = node_cell[t - 1];
                 var row_node_output = node_output[t];
 
-                for (var j = 0; j < size_output; j++)
+                Parallel.For(0, size_output, options, j =>
                 {
                     d_node_output[j] += Clip(grads[t][j]);
                     var tanh_cell = Tanh(row_node_cell[j]);
@@ -211,7 +212,7 @@ namespace Model
                             d_node_output[i - size_input] += row_w_gate_output[i] * d_gate_output;
                         }
                     }
-                }
+                });
             }
 
             Update(alpha);
@@ -315,7 +316,7 @@ namespace Model
 
         protected override void Update(double alpha)
         {
-            for (var j = 0; j < size_output; j++)
+            Parallel.For(0, size_output, options, j =>
             {
                 cb_gate_output[j] = rmsDecay * cb_gate_output[j] + (1 - rmsDecay) * Math.Pow(db_gate_output[j], 2);
                 cb_gate_forget[j] = rmsDecay * cb_gate_forget[j] + (1 - rmsDecay) * Math.Pow(db_gate_forget[j], 2);
@@ -339,7 +340,7 @@ namespace Model
                     w_gate_input[j][i] -= Clip(dw_gate_input[j][i]) * alpha / Math.Sqrt(cw_gate_input[j][i] + 1e-6);
                     w_node_input[j][i] -= Clip(dw_node_input[j][i]) * alpha / Math.Sqrt(cw_node_input[j][i] + 1e-6);
                 }
-            }
+            });
         }
     }
 }

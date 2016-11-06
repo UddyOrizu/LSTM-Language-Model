@@ -3,6 +3,7 @@
 
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace Model
 {
@@ -64,7 +65,7 @@ namespace Model
                 var row_vcx_state = vcx[t];
 
                 node_output[t] = new double[size_output];
-                for (var j = 0; j < size_output; j++)
+                Parallel.For(0, size_output, options, j =>
                 {
                     var sum = b_node_output[j];
 
@@ -73,7 +74,7 @@ namespace Model
                         sum += row_vcx_state[i] * row[i];
 
                     node_output[t][j] = Tanh(sum);
-                }
+                });
             }
 
             return node_output;
@@ -94,7 +95,7 @@ namespace Model
 
                 var row_vcx = vcx[t];
 
-                for (var j = 0; j < size_output; j++)
+                Parallel.For(0, size_output, options, j =>
                 {
                     dy[j] += Clip(grads[t][j]);
                     dy[j] = dTanh(node_output[t][j]) * dy[j];
@@ -112,7 +113,7 @@ namespace Model
                         else
                             dy_prev[i - size_input] += row_w_node_output[i] * dy[j];
                     }
-                }
+                });
             }
 
             Update(alpha);

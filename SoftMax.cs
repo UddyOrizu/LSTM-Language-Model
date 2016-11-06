@@ -2,6 +2,7 @@
 // www.robosoup.com
 
 using System;
+using System.Threading.Tasks;
 
 namespace Model
 {
@@ -56,12 +57,12 @@ namespace Model
                 var row_vcx_state = vcx[t];
 
                 var vy = new double[size_output];
-                for (var j = 0; j < size_output; j++)
+                Parallel.For(0, size_output, options, j =>
                 {
                     var row_w_node_output = w_node_output[j];
                     for (var i = 0; i < size_input; i++)
                         vy[j] += row_vcx_state[i] * row_w_node_output[i];
-                }
+                });
 
                 node_output[t] = Calculate(vy);
             }
@@ -76,7 +77,7 @@ namespace Model
             {
                 var row_vcx_state = vcx[t];
                 var row_grads_out = new double[size_input];
-                for (var j = 0; j < size_output; j++)
+                Parallel.For(0, size_output, options, j =>
                 {
                     db_node_output[j] += grads[t][j];
 
@@ -88,7 +89,7 @@ namespace Model
                         row_grads_out[i] += row_w_node_output[i] * grads[t][j];
                         row_dw_node_output[i] += row_vcx_state[i] * grads[t][j];
                     }
-                }
+                });
                 grads_out[t] = row_grads_out;
             }
 
@@ -143,7 +144,7 @@ namespace Model
 
         protected override void Update(double alpha)
         {
-            for (var j = 0; j < size_output; j++)
+            Parallel.For(0, size_output, options, j =>
             {
                 cb_node_output[j] = rmsDecay * cb_node_output[j] + (1 - rmsDecay) * Math.Pow(db_node_output[j], 2);
                 b_node_output[j] -= Clip(db_node_output[j]) * alpha / Math.Sqrt(cb_node_output[j] + 1e-6);
@@ -153,7 +154,7 @@ namespace Model
                     cw_node_output[j][i] = rmsDecay * cw_node_output[j][i] + (1 - rmsDecay) * Math.Pow(cw_node_output[j][i], 2);
                     w_node_output[j][i] -= Clip(dw_node_output[j][i]) * alpha / Math.Sqrt(cw_node_output[j][i] + 1e-6);
                 }
-            }
+            });
         }
 
         private static double[] Calculate(double[] vx)
