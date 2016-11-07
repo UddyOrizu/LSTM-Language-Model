@@ -13,7 +13,6 @@ namespace Model
     public class LSTM : Layer
     {
         // Dimensions.
-        private int size_buffer;
         private int size_output;
         private int size_input;
         private int size_total;
@@ -62,13 +61,11 @@ namespace Model
             return size_output * 4 + size_total * size_output * 4;
         }
 
-        public LSTM(int size_input, int size_output, int size_buffer, double learning_rate)
+        public LSTM(int size_input, int size_output)
         {
             this.size_output = size_output;
             this.size_input = size_input;
-            this.size_buffer = size_buffer;
             size_total = size_input + size_output;
-            LearningRate = learning_rate;
 
             ResetState();
             ResetParameters();
@@ -85,11 +82,11 @@ namespace Model
             }
             else
             {
-                node_cell[0] = node_cell[size_buffer - 1].ToArray();
-                node_output[0] = node_output[size_buffer - 1].ToArray();
+                node_cell[0] = node_cell[BufferSize - 1].ToArray();
+                node_output[0] = node_output[BufferSize - 1].ToArray();
             }
 
-            for (var t = 1; t < size_buffer; t++)
+            for (var t = 1; t < BufferSize; t++)
             {
                 buffer[t].CopyTo(vcx[t], 0);
                 node_output[t - 1].CopyTo(vcx[t], size_input);
@@ -142,11 +139,11 @@ namespace Model
 
         public override double[][] Backward(double[][] grads)
         {
-            var grads_out = new double[size_buffer][];
+            var grads_out = new double[BufferSize][];
             var d_node_cell = new double[size_output];
             var d_node_output = new double[size_output];
 
-            for (var t = size_buffer - 1; t > 0; t--)
+            for (var t = BufferSize - 1; t > 0; t--)
             {
                 grads_out[t] = new double[size_input];
 
@@ -224,15 +221,15 @@ namespace Model
 
         protected override void ResetState()
         {
-            gate_output = new double[size_buffer][];
-            gate_forget = new double[size_buffer][];
-            node_input = new double[size_buffer][];
-            gate_input = new double[size_buffer][];
-            node_output = new double[size_buffer][];
-            node_cell = new double[size_buffer][];
-            vcx = new double[size_buffer][];
+            gate_output = new double[BufferSize][];
+            gate_forget = new double[BufferSize][];
+            node_input = new double[BufferSize][];
+            gate_input = new double[BufferSize][];
+            node_output = new double[BufferSize][];
+            node_cell = new double[BufferSize][];
+            vcx = new double[BufferSize][];
 
-            for (var i = 0; i < size_buffer; i++)
+            for (var i = 0; i < BufferSize; i++)
             {
                 gate_output[i] = new double[size_output];
                 gate_forget[i] = new double[size_output];

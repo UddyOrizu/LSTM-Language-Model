@@ -12,7 +12,6 @@ namespace Model
     public class SoftMax : Layer
     {
         // Dimensions.
-        private int size_buffer;
         private int size_output;
         private int size_input;
 
@@ -32,12 +31,10 @@ namespace Model
         private double[] cb_node_output;
         private double[][] cw_node_output;
 
-        public SoftMax(int size_input, int size_output, int size_buffer, double learning_rate)
+        public SoftMax(int size_input, int size_output)
         {
             this.size_output = size_output;
             this.size_input = size_input;
-            this.size_buffer = size_buffer;
-            LearningRate = learning_rate;
 
             ResetState();
             ResetParameters();
@@ -52,7 +49,7 @@ namespace Model
 
         public override double[][] Forward(double[][] buffer, bool reset)
         {
-            for (var t = 1; t < size_buffer; t++)
+            for (var t = 1; t < BufferSize; t++)
             {
                 vcx[t] = buffer[t];
                 var row_vcx_state = vcx[t];
@@ -73,8 +70,8 @@ namespace Model
 
         public override double[][] Backward(double[][] grads)
         {
-            var grads_out = new double[size_buffer][];
-            for (var t = size_buffer - 1; t > 0; t--)
+            var grads_out = new double[BufferSize][];
+            for (var t = BufferSize - 1; t > 0; t--)
             {
                 var row_vcx_state = vcx[t];
                 var row_grads_out = new double[size_input];
@@ -102,10 +99,10 @@ namespace Model
 
         protected override void ResetState()
         {
-            node_output = new double[size_buffer][];
-            vcx = new double[size_buffer][];
+            node_output = new double[BufferSize][];
+            vcx = new double[BufferSize][];
 
-            for (var i = 0; i < size_buffer; i++)
+            for (var i = 0; i < BufferSize; i++)
             {
                 node_output[i] = new double[size_output];
                 vcx[i] = new double[size_input];

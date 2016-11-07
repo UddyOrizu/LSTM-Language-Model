@@ -13,7 +13,6 @@ namespace Model
     public class RNN : Layer
     {
         // Dimensions.
-        private int size_buffer;
         private int size_output;
         private int size_input;
         private int size_total;
@@ -39,13 +38,11 @@ namespace Model
             return size_output + size_total * size_output;
         }
 
-        public RNN(int size_input, int size_output, int size_buffer, double learning_rate)
+        public RNN(int size_input, int size_output)
         {
             this.size_input = size_input;
             this.size_output = size_output;
-            this.size_buffer = size_buffer;
             size_total = size_input + size_output;
-            LearningRate = learning_rate;
 
             ResetState();
             ResetParameters();
@@ -56,9 +53,9 @@ namespace Model
         public override double[][] Forward(double[][] buffer, bool reset)
         {
             if (reset) node_output[0] = new double[size_output];
-            else node_output[0] = node_output[size_buffer - 1].ToArray();
+            else node_output[0] = node_output[BufferSize - 1].ToArray();
 
-            for (var t = 1; t < size_buffer; t++)
+            for (var t = 1; t < BufferSize; t++)
             {
                 buffer[t].CopyTo(vcx[t], 0);
                 node_output[t - 1].CopyTo(vcx[t], size_input);
@@ -83,10 +80,10 @@ namespace Model
 
         public override double[][] Backward(double[][] grads)
         {
-            var grads_out = new double[size_buffer][];
+            var grads_out = new double[BufferSize][];
             var dy_prev = new double[size_output];
 
-            for (var t = size_buffer - 1; t > 0; t--)
+            for (var t = BufferSize - 1; t > 0; t--)
             {
                 grads_out[t] = new double[size_output];
                 var row_grads_out = grads_out[t];
@@ -125,10 +122,10 @@ namespace Model
 
         protected override void ResetState()
         {
-            node_output = new double[size_buffer][];
-            vcx = new double[size_buffer][];
+            node_output = new double[BufferSize][];
+            vcx = new double[BufferSize][];
 
-            for (var i = 0; i < size_buffer; i++)
+            for (var i = 0; i < BufferSize; i++)
             {
                 node_output[i] = new double[size_output];
                 vcx[i] = new double[size_total];

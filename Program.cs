@@ -24,10 +24,7 @@ namespace Model
 
         // Hyperparameters.
         private const int size_hidden = 128;
-        private const int size_buffer = 24;
         private const int sample_length = 500;
-        private const int sample_count = 3;
-        private double learning_rate = 1e-3;
 
         static void Main()
         {
@@ -46,9 +43,11 @@ namespace Model
             var i = 0;
             foreach (var item in Decode) Encode.Add(item, i++);
 
-            layer1 = new LSTM(size_vocab, size_hidden, size_buffer, learning_rate);
-            layer2 = new LSTM(size_hidden, size_hidden, size_buffer, learning_rate);
-            layer3 = new SoftMax(size_hidden, size_vocab, size_buffer, learning_rate);
+            Layer.BufferSize = 24;
+            Layer.LearningRate = 1e-3;
+            layer1 = new LSTM(size_vocab, size_hidden);
+            layer2 = new LSTM(size_hidden, size_hidden);
+            layer3 = new SoftMax(size_hidden, size_vocab);
 
             var param_count = layer1.Count() + layer2.Count() + layer3.Count();
 
@@ -61,7 +60,7 @@ namespace Model
                 while (true)
                 {
                     var pos = 0;
-                    while (pos + size_buffer < text.Length)
+                    while (pos + Layer.BufferSize < text.Length)
                     {
                         // Fill buffer.
                         var buffer = FillBuffer(pos, Encode);
@@ -72,7 +71,7 @@ namespace Model
 
                         // Advance buffer.                       
                         var vx = new double[size_vocab];
-                        pos += size_buffer - 1;
+                        pos += Layer.BufferSize - 1;
                         vx[Encode[text[pos]]] = 1;
                         AdvanceBuffer(buffer, vx);
 
@@ -84,22 +83,17 @@ namespace Model
                     }
 
                     // Sample progress.
-                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}  perplexity: {4:0.000}", DateTime.Now, epoch, learning_rate, loss, perplexity);
-                    for (var g = 0; g < sample_count; g++)
-                    {
-                        logger.WriteLine(new String('-', 80));
-                        Generate(logger, Decode, Encode);
-                    }
+                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}  perplexity: {4:0.000}", DateTime.Now, epoch, Layer.LearningRate, loss, perplexity);
+                    logger.WriteLine(new String('-', 80));
+                    Generate(logger, Decode, Encode);
                     logger.WriteLine(new String('-', 80));
                     logger.WriteLine();
                     logger.Flush();
 
                     // Adjust learning rate.
-                    if (loss_p - loss > 0) learning_rate += learning_rate * 0.01;
-                    else learning_rate -= learning_rate * 0.02;
-                    layer1.LearningRate = learning_rate;
-                    layer2.LearningRate = learning_rate;
-                    layer3.LearningRate = learning_rate;
+                    if (loss_p - loss > 0) Layer.LearningRate *= 1.01;
+                    else Layer.LearningRate *= 0.98;
+
                     loss_p = loss_p * 0.8 + loss * 0.2;
 
                     epoch++;
@@ -114,8 +108,8 @@ namespace Model
         {
             var ls = 0.0;
             var pp = 1.0;
-            var grads = new double[size_buffer][];
-            for (var t = 1; t < size_buffer; t++)
+            var grads = new double[Layer.BufferSize][];
+            for (var t = 1; t < Layer.BufferSize; t++)
             {
                 grads[t] = probs[t].ToArray();
                 for (var i = 0; i < size_vocab; i++)
@@ -126,10 +120,10 @@ namespace Model
                 }
             }
 
-            ls = ls / (size_buffer - 1);
+            ls = ls / (Layer.BufferSize - 1);
             loss = loss * 0.99 + ls * 0.01;
 
-            pp = Math.Pow(pp, 1.0 / (size_buffer - 1));
+            pp = Math.Pow(pp, 1.0 / (Layer.BufferSize - 1));
             perplexity = perplexity * 0.99 + pp * 0.01;
 
             return grads;
@@ -141,8 +135,8 @@ namespace Model
         private double[][] FillBuffer(int offset, Dictionary<char, int> Encode)
         {
             // First position is unused.
-            var buffer = new double[size_buffer][];
-            for (var pos = 1; pos < size_buffer; pos++)
+            var buffer = new double[Layer.BufferSize][];
+            for (var pos = 1; pos < Layer.BufferSize; pos++)
             {
                 buffer[pos] = new double[size_vocab];
                 buffer[pos][Encode[text[pos + offset - 1]]] = 1;
@@ -155,9 +149,9 @@ namespace Model
         /// </summary>
         private static void AdvanceBuffer(double[][] buffer, double[] vx)
         {
-            for (var b = 1; b < size_buffer - 1; b++)
+            for (var b = 1; b < Layer.BufferSize - 1; b++)
                 buffer[b] = buffer[b + 1];
-            buffer[size_buffer - 1] = vx;
+            buffer[Layer.BufferSize - 1] = vx;
         }
 
         /// <summary>
@@ -170,7 +164,7 @@ namespace Model
             {
                 var reset = pos == 0;
                 var probs = layer3.Forward(layer2.Forward(layer1.Forward(buffer, reset), reset), reset);
-                var ix = WeightedChoice(probs[size_buffer - 1]);
+                var ix = WeightedChoice(probs[Layer.BufferSize - 1]);
                 var vx = new double[size_vocab];
                 vx[ix] = 1;
                 AdvanceBuffer(buffer, vx);

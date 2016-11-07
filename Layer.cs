@@ -17,7 +17,9 @@ namespace Model
 
         protected const double rmsDecay = 0.95;
 
-        public double LearningRate;
+        public static int BufferSize;
+
+        public static double LearningRate;
 
         public abstract int Count();
 
