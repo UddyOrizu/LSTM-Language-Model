@@ -11,20 +11,16 @@ namespace Model
     public class Program
     {
         private Random rnd = new Random();
-        private int size_vocab;
         private string text;
         private double loss;
         private double loss_p;
-        private double perplexity;
+        private int size_vocab;
 
         // Network layers.
+        private const int size_hidden = 350;
         private Layer layer1;
         private Layer layer2;
         private Layer layer3;
-
-        // Hyperparameters.
-        private const int size_hidden = 128;
-        private const int sample_length = 500;
 
         static void Main()
         {
@@ -38,7 +34,6 @@ namespace Model
             var Encode = new Dictionary<char, int>();
             size_vocab = Decode.Length;
             loss_p = Math.Log(size_vocab);
-            perplexity = size_vocab;
 
             var i = 0;
             foreach (var item in Decode) Encode.Add(item, i++);
@@ -56,7 +51,7 @@ namespace Model
                 logger.WriteLine("[{0:H:mm:ss}] Learning {1:#,###0} parameters...", DateTime.Now, param_count);
                 logger.WriteLine();
 
-                var epoch = 0;
+                var iter = 0;
                 while (true)
                 {
                     var pos = 0;
@@ -83,20 +78,19 @@ namespace Model
                     }
 
                     // Sample progress.
-                    logger.WriteLine("[{0:H:mm:ss}] epoch: {1}  learning rate: {2:0.0000}  loss: {3:0.000}  perplexity: {4:0.000}", DateTime.Now, epoch, Layer.LearningRate, loss, perplexity);
-                    logger.WriteLine(new String('-', 80));
+                    logger.WriteLine("[{0:H:mm:ss}] iteration: {1}  learning rate: {2:0.0000}  loss: {3:0.000}", DateTime.Now, iter, Layer.LearningRate, loss);
+                    logger.WriteLine(new String('-', 60));
                     Generate(logger, Decode, Encode);
-                    logger.WriteLine(new String('-', 80));
+                    logger.WriteLine(new String('-', 60));
                     logger.WriteLine();
                     logger.Flush();
 
                     // Adjust learning rate.
                     if (loss_p - loss > 0) Layer.LearningRate *= 1.01;
                     else Layer.LearningRate *= 0.98;
-
                     loss_p = loss_p * 0.8 + loss * 0.2;
 
-                    epoch++;
+                    iter++;
                 }
             }
         }
@@ -107,7 +101,6 @@ namespace Model
         private double[][] Loss(double[][] probs, double[][] targets)
         {
             var ls = 0.0;
-            var pp = 1.0;
             var grads = new double[Layer.BufferSize][];
             for (var t = 1; t < Layer.BufferSize; t++)
             {
@@ -115,17 +108,11 @@ namespace Model
                 for (var i = 0; i < size_vocab; i++)
                 {
                     ls += -Math.Log(probs[t][i]) * targets[t][i];
-                    if (targets[t][i] == 1) pp = pp * (1 / probs[t][i]);
                     grads[t][i] -= targets[t][i];
                 }
             }
-
             ls = ls / (Layer.BufferSize - 1);
             loss = loss * 0.99 + ls * 0.01;
-
-            pp = Math.Pow(pp, 1.0 / (Layer.BufferSize - 1));
-            perplexity = perplexity * 0.99 + pp * 0.01;
-
             return grads;
         }
 
@@ -160,7 +147,7 @@ namespace Model
         private void Generate(Logger logger, char[] Decode, Dictionary<char, int> Encode)
         {
             var buffer = FillBuffer(0, Encode);
-            for (var pos = 0; pos < sample_length; pos++)
+            for (var pos = 0; pos < 500; pos++)
             {
                 var reset = pos == 0;
                 var probs = layer3.Forward(layer2.Forward(layer1.Forward(buffer, reset), reset), reset);
