@@ -17,7 +17,7 @@ namespace Model
         private int size_vocab;
 
         // Network layers.
-        private const int size_hidden = 350;
+        private const int size_hidden = 256;
         private Layer layer1;
         private Layer layer2;
         private Layer layer3;
@@ -79,11 +79,14 @@ namespace Model
 
                     // Sample progress.
                     logger.WriteLine("[{0:H:mm:ss}] iteration: {1}  learning rate: {2:0.0000}  loss: {3:0.000}", DateTime.Now, iter, Layer.LearningRate, loss);
-                    logger.WriteLine(new String('-', 60));
-                    Generate(logger, Decode, Encode);
-                    logger.WriteLine(new String('-', 60));
-                    logger.WriteLine();
-                    logger.Flush();
+                    if (iter % 5 == 0)
+                    {
+                        logger.WriteLine(new String('-', 60));
+                        Generate(logger, Decode, Encode);
+                        logger.WriteLine(new String('-', 60));
+                        logger.WriteLine();
+                        logger.Flush();
+                    }
 
                     // Adjust learning rate.
                     if (loss_p - loss > 0) Layer.LearningRate *= 1.01;

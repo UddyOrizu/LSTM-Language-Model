@@ -2,6 +2,7 @@
 // www.robosoup.com
 
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Model
@@ -54,7 +55,7 @@ namespace Model
                 vcx[t] = buffer[t];
                 var row_vcx_state = vcx[t];
 
-                var vy = new double[size_output];
+                var vy = b_node_output.ToArray();
                 Parallel.For(0, size_output, options, j =>
                 {
                     var row_w_node_output = w_node_output[j];
@@ -160,6 +161,8 @@ namespace Model
             var sum = 0.0;
             var length = vx.Length;
             for (var i = 0; i < length; i++) sum += Math.Exp(vx[i]);
+
+            if (double.IsInfinity(sum)) throw new Exception("Gradient explosion - try lower learning rate.");
 
             var y = new double[length];
             for (var i = 0; i < length; i++) y[i] = Math.Exp(vx[i]) / sum;
